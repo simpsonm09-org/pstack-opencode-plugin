@@ -1,0 +1,27 @@
+{
+  "name": "pstack-opencode",
+  "version": "0.1.0",
+  "description": "PStack for OpenCode: registers the pinned PStack skills and injects the routing instruction, scoped to the workspace that loads it.",
+  "license": "MIT",
+  "type": "module",
+  "main": "index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "files": [
+    "index.ts",
+    "skills",
+    "agents",
+    "NOTICE",
+    "NOTICE-port.md",
+    "LICENSE",
+    "LICENSE-cursor-team-kit",
+    "README.md",
+    "CHANGES.md",
+    "PORTING.md",
+    "pstack.lock.json"
+  ],
+  "dependencies": {
+    "@opencode/plugin": "2.0.18"
+  }
+}

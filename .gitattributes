@@ -1,0 +1,11 @@
+* text=auto eol=lf
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.png binary
+*.jpg binary
+*.webp binary
+skills/** linguist-generated=true
+package-lock.json linguist-generated=true
+NOTICE linguist-generated=true
+NOTICE-port.md linguist-generated=true
+LICENSE-cursor-team-kit linguist-generated=true
