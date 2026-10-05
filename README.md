@@ -15,7 +15,7 @@ When it loads it does two things:
 
 ## Guide
 
-The plugin ships an OpenCode-adapted guide under `docs/guide/`. Start at [docs/guide/README.md](docs/guide/README.md), which indexes the pages and gives a quickstart. The guide covers the 24 coding standards, verification, the workflow, and prompts.
+The plugin ships an OpenCode-adapted guide under `docs/guide/`. Start at [docs/README.md](docs/README.md), the documentation index. It links the guide pages and the repository root docs, and covers the 24 coding standards, verification, the workflow, and prompts. The guide pages live in `docs/guide/`.
 
 ## Upstream sources of truth
 
