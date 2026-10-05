@@ -1,6 +1,6 @@
 {
   "name": "pstack-opencode",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "PStack for OpenCode: registers the pinned PStack skills and injects the routing instruction, scoped to the workspace that loads it.",
   "license": "MIT",
   "type": "module",
