@@ -19,6 +19,7 @@
     "README.md",
     "CHANGES.md",
     "PORTING.md",
+    "docs",
     "pstack.lock.json"
   ],
   "dependencies": {

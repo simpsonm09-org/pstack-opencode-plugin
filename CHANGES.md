@@ -53,6 +53,9 @@ These files are authored for this port and are not vendored:
 - `index.ts`, `package.json`
 - `CHANGES.md`, `PORTING.md`, `README.md`
 - `scripts/build.ps1`, `scripts/verify-pin.py`, `scripts/upstream-status.py`
+- `docs/guide/README.md`, `docs/guide/principles.md`, `docs/guide/verification.md`, `docs/guide/workflows.md`, `docs/guide/prompts.md`
+
+The guide is port-authored and OpenCode-adapted from the upstream pstack guide and the pstack article series.
 
 ## Add a substitution
 

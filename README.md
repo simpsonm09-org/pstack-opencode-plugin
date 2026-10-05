@@ -13,6 +13,10 @@ When it loads it does two things:
 - It cannot set the workspace model. That stays in the workspace `opencode.jsonc`, and the per-role models come from `maxstack/models.json`.
 - Transform-registered skills get a base directory but no `<skill_files>` sample. PStack skills name their own supporting files, so the agent still finds them.
 
+## Guide
+
+The plugin ships an OpenCode-adapted guide under `docs/guide/`. Start at [docs/guide/README.md](docs/guide/README.md), which indexes the pages and gives a quickstart. The guide covers the 24 coding standards, verification, the workflow, and prompts.
+
 ## Upstream sources of truth
 
 PStack starts at the Cursor plugin [cursor/plugins/pstack](https://github.com/cursor/plugins/blob/main/pstack/README.md), is ported to Claude Code at [michael-denyer/pstack-claude](https://github.com/michael-denyer/pstack-claude), and is adapted to OpenCode here. The chain is cursor/plugins pstack to pstack-claude to this repository. The current pin is `michael-denyer/pstack-claude` `dc8e617`, absorbing `cursor/plugins` `e43c7ee` and PStack v0.15.9.
@@ -33,6 +37,7 @@ Vendored skills under `skills/` are byte-identical to the pinned upstream commit
 - `scripts/upstream-status.py` reports upstream drift against the pin.
 - `pstack.lock.json` pins the upstream `pstack-claude` repository and commit, plus the Cursor `portOf` source.
 - `PORTING.md` states the faithful-port policy and the update workflow. `CHANGES.md` declares the substitutions.
+- `docs/guide/` is the port-authored guide, adapted for OpenCode.
 
 ## Build
 
