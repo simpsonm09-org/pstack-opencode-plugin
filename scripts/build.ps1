@@ -83,9 +83,11 @@ Get-ChildItem -LiteralPath $adapterSkills -Directory | ForEach-Object {
 }
 
 $vendorNames = @()
-Get-ChildItem -LiteralPath $vendorSkills -Directory | ForEach-Object {
-    Copy-Tree -Source $_.FullName -Destination (Join-Path $skillsTarget $_.Name)
-    $vendorNames += $_.Name
+if (Test-Path -LiteralPath $vendorSkills -PathType Container) {
+    Get-ChildItem -LiteralPath $vendorSkills -Directory | ForEach-Object {
+        Copy-Tree -Source $_.FullName -Destination (Join-Path $skillsTarget $_.Name)
+        $vendorNames += $_.Name
+    }
 }
 
 Copy-Item -LiteralPath (Join-Path $Clone 'NOTICE-skills.md') -Destination (Join-Path $repoRoot 'NOTICE') -Force

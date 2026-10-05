@@ -1,18 +1,22 @@
 #!/usr/bin/env node
 // Locate the transcript whose opening user prompt carries a fragment.
 //
-//   node find-transcript.mjs <transcripts-dir> <opening-prompt-fragment>
+//   node find-transcript.mjs <transcripts-dir> <opening-prompt-fragment> [workspace]
 //
 // Prints the newest matching path, or exits 1 with "no transcript". Covers
 // Claude Code's three layouts under one per-project directory (flat
 // <id>.jsonl, nested <id>/<id>.jsonl, subagent <id>/subagents/<child>.jsonl)
-// and Pi's <iso>_<id>.jsonl under its per-cwd sessions directory, told apart
-// by Pi's session header line. Each candidate is streamed line by line; a
-// Claude Code transcript is abandoned at its first typed `user` record, while a
-// Pi session is read to its last entry to find the active branch. A Codex
-// rollout is refused by name rather than read as an empty Claude transcript.
+// Pi's <iso>_<id>.jsonl under its per-cwd sessions directory, and GitHub
+// Copilot's <id>/events.jsonl under its session-state directory, told apart by
+// Pi's session header line and Copilot's session.start event. Each candidate is
+// streamed line by line; a Claude Code or Copilot transcript is abandoned at its
+// first typed user record. Copilot searches compare the session header's cwd
+// with the workspace (the current directory by default) before reading user
+// messages. A Pi session is read to its last entry to find
+// the active branch. A Codex rollout is refused by name rather than read as an
+// empty Claude transcript.
 import { createReadStream, readdirSync, realpathSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { isAbsolute, join } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
@@ -80,6 +84,29 @@ const isPiHeader = (record) =>
 // A Codex rollout opens with its session metadata.
 const isCodexHeader = (record) => record?.type === "session_meta";
 
+// A Copilot events.jsonl opens with this event and records each prompt the
+// user typed as a `user.message` event.
+const isCopilotHeader = (record) => record?.type === "session.start" && typeof record.data === "object";
+
+async function copilotOpening(head, records, workspace) {
+  if (workspace !== undefined) {
+    const cwd = head.data?.context?.cwd;
+    if (typeof cwd !== "string" || !isAbsolute(cwd)) return null;
+    try {
+      if (realpathSync(cwd) !== realpathSync(workspace)) return null;
+    } catch {
+      // A removed or inaccessible workspace cannot identify this session.
+      return null;
+    }
+  }
+  for await (const record of records) {
+    if (record?.type !== "user.message") continue;
+    const prompt = text(record.data?.content);
+    if (prompt) return prompt;
+  }
+  return null;
+}
+
 async function* parsed(lines) {
   for await (const line of lines) {
     try {
@@ -129,29 +156,30 @@ async function piOpening(records) {
 // and takes every file the others do not claim.
 const READERS = [
   [isPiHeader, (head, rest) => piOpening(rest)],
+  [isCopilotHeader, (head, rest, path, workspace) => copilotOpening(head, rest, workspace)],
   [isCodexHeader, (head, rest, path) => {
     throw new Error(`${path} is a Codex rollout, which find-transcript does not read; pass the session digest instead`);
   }],
   [() => true, (head, rest) => claudeOpening(prepend(head, rest))],
 ];
 
-export async function openingPrompt(path) {
+export async function openingPrompt(path, workspace) {
   const stream = createReadStream(path, { encoding: "utf8" });
   try {
     const records = parsed(jsonlLines(stream));
     const { value: head, done } = await records.next();
     if (done) return null;
     const [, read] = READERS.find(([matches]) => matches(head));
-    return await read(head, records, path);
+    return await read(head, records, path, workspace);
   } finally {
     stream.destroy();
   }
 }
 
-export async function findTranscript(projectsDir, fragment) {
+export async function findTranscript(projectsDir, fragment, workspace = process.cwd()) {
   for (const { path } of candidates(projectsDir)) {
     try {
-      const prompt = await openingPrompt(path);
+      const prompt = await openingPrompt(path, workspace);
       if (prompt?.includes(fragment)) return path;
     } catch (error) {
       rethrowUnlessRemoved(error);
@@ -161,12 +189,12 @@ export async function findTranscript(projectsDir, fragment) {
 }
 
 async function main(argv) {
-  const [projectsDir, fragment] = argv;
-  if (!projectsDir || !fragment) {
-    console.error("usage: find-transcript.mjs <transcripts-dir> <opening-prompt-fragment>");
+  const [projectsDir, fragment, workspace] = argv;
+  if (!projectsDir || !fragment || argv.length > 3) {
+    console.error("usage: find-transcript.mjs <transcripts-dir> <opening-prompt-fragment> [workspace]");
     return 2;
   }
-  const path = await findTranscript(projectsDir, fragment);
+  const path = await findTranscript(projectsDir, fragment, workspace);
   if (!path) {
     console.error(`no transcript under ${projectsDir} opens with ${JSON.stringify(fragment)}`);
     return 1;
