@@ -50,6 +50,17 @@ For the current setup, PStack subagents inherit the active session model. To add
 | `benchmark-checklist` tooling | The checklist names Unix tools such as `uptime`, `nproc`, `pidstat`, `strace`, `py-spy`, and `perf`. Some are absent on Windows. Use the platform equivalent and keep the checklist's seven questions. `node --cpu-prof` is the cross-platform baseline. |
 | `create-verification-skill` and `maintain-verification-skill` output | Both target `.claude/skills/verify/`. On OpenCode, write the skill to `.opencode/skills/`, with `.claude/skills/` and `.agents/skills/` also resolving. |
 
+### poteto-help
+
+The `poteto-help` skill answers setup, `/poteto-mode`, and skill-choice questions. Its Claude Code specifics map as follows.
+
+- The install step, `/plugin marketplace add michael-denyer/pstack-claude` and `/plugin install pstack@pstack-claude`, does not apply. On OpenCode the workspace installer installs the plugin.
+- The model sheet that `/setup-pstack` writes and `CLAUDE.md` imports does not apply. Use the `setup-pstack-opencode` skill and set the model on the agent profile.
+- The SessionStart hook is the plugin's session context hook in `index.ts`.
+- The `subagent_type: "pstack:poteto-agent"` value maps to the installed `pstack-agent` ID.
+- The body's external links are not OpenCode documentation. That covers the Claude Code skills docs link, the cursor/plugins guide pages, the pstack-claude README, and the pstack-claude public-copy base. Read the OpenCode guide the plugin ships under `docs/guide/` instead.
+- The note that the `principle-*` leaves are hidden from the slash menu does not hold. OpenCode registers every skill through the transform, so every ID is loadable with the `skill` tool.
+
 ## OpenChamber-specific options
 
 OpenChamber runs on an OpenCode server. Its personal skills and project skills use the app's Settings UI; OpenCode's global and project skill paths also work when the managed server can see them.

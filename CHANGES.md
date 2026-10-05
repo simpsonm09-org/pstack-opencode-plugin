@@ -2,11 +2,23 @@
 
 This repository adapts the pinned `michael-denyer/pstack-claude` tree to OpenCode. The Cursor original `cursor/plugins/pstack` is the authority for fidelity. `PORTING.md` states the policy.
 
-This tree is pinned to `michael-denyer/pstack-claude` `dc8e617`, which absorbs `cursor/plugins` `e43c7ee` (PStack v0.15.9).
+This tree is pinned to `michael-denyer/pstack-claude` `8500f361` (pstack-claude main, observed 2026-10-05), which absorbs `cursor/plugins` `e43c7ee` (PStack v0.15.9). The v0.15.13 skill `poteto-help` is carried ahead of the pin from pstack-claude PR #214 (`50b8580`, syncing `cursor/plugins` `2cbf585`), because pstack-claude has not merged that sync.
 
 ## Fidelity rule
 
-Every vendored file under `skills/` is byte-identical to the pinned upstream commit after LF normalization. `scripts/verify-pin.py` fails on any byte difference, a missing file, or an extra file. The port edits no upstream skill body. All adaptations live in port-authored files.
+Every vendored file under `skills/` is byte-identical to its source after LF normalization. `scripts/verify-pin.py` fails on any byte difference, a missing file, or an extra file. The port edits no upstream skill body. All adaptations live in port-authored files.
+
+## Vendored ahead of the pin
+
+`vendor/skills/` holds upstream content sourced from a pstack-claude commit newer than the pin, for a change pstack-claude has not merged. It is upstream-sourced, not port-authored. `scripts/build.ps1` mirrors each `vendor/skills/<id>/` into `skills/<id>/`, and `scripts/verify-pin.py` byte-checks the copy against the vendor source the same way it checks the pin and the adapter.
+
+An entry moves into the pinned set when the pin advances to a commit that carries it. Reconcile every one of these in the same change. Remove the `vendor/skills/<id>/` copy, because the pinned clone then supplies the skill. Remove the entry under `## Vendored ahead of the pin`. Bump `portOf.absorbedCommit` in `pstack.lock.json` to the newly absorbed `cursor/plugins` commit. Update the `pstack.lock.json` notes to drop the carried-ahead wording for that skill. Update the pin sentences in `README.md` and this file. Then rebuild and run the pin check. `scripts/verify-pin.py` now fails when a `vendor/skills/<id>/` entry is also present in the pinned upstream, so the removal cannot be forgotten.
+
+The vendor copy's fidelity to its source pstack-claude commit is checked by hand at port time, because `scripts/verify-pin.py` compares `skills/` against the local `vendor/skills/` copy and not against the source commit, which is not in the pinned clone.
+
+Current entries:
+
+- `poteto-help`, from pstack-claude PR #214 (`50b8580`, syncing `cursor/plugins` `2cbf585`).
 
 ## Declared substitutions
 
@@ -36,10 +48,11 @@ The port replaces Claude Code primitives with OpenCode equivalents. The mapping 
 | Unix perf tooling in `benchmark-checklist` (`uptime`, `nproc`, `pidstat`, `strace`, `py-spy`, `perf`) | The platform equivalent, with `node --cpu-prof` as the cross-platform baseline. Keep the checklist's seven questions. |
 | The upstream `setup-pstack` `opencode` runtime row | Superseded by the `setup-pstack-opencode` skill, which sets a model on the agent profile instead of the `instructions` array. |
 | The `correct` rule table | Kept in the agent instruction file, which on OpenCode is `AGENTS.md`. |
+| `poteto-help` Claude Code specifics (the `/plugin marketplace` install, the `pstack-models.md` sheet import, the SessionStart hook, and `subagent_type: "pstack:poteto-agent"`) | The workspace installer installs the plugin, the `setup-pstack-opencode` skill sets the model on the agent profile, the plugin's session context hook in `index.ts` is the SessionStart hook, and the installed `pstack-agent` ID replaces the `subagent_type`. See the `### poteto-help` note in the adapter skill `pstack-opencode`. |
 
 These substitutions are additive. They change how an OpenCode agent reaches a skill, not the skill body.
 
-The adapter also carries accuracy edits that are not substitutions, for example the `port-pstack` step 7 wording, and those are tracked in the diff rather than the table.
+The adapter also carries accuracy edits that are not substitutions, for example the `port-pstack` step 9 verify wording, and those are tracked in the diff rather than the table.
 
 ## Port-authored files
 

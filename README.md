@@ -19,21 +19,22 @@ The plugin ships an OpenCode-adapted guide under `docs/guide/`. Start at [docs/R
 
 ## Upstream sources of truth
 
-PStack starts at the Cursor plugin [cursor/plugins/pstack](https://github.com/cursor/plugins/blob/main/pstack/README.md), is ported to Claude Code at [michael-denyer/pstack-claude](https://github.com/michael-denyer/pstack-claude), and is adapted to OpenCode here. The chain is cursor/plugins pstack to pstack-claude to this repository. The current pin is `michael-denyer/pstack-claude` `dc8e617`, absorbing `cursor/plugins` `e43c7ee` and PStack v0.15.9.
+PStack starts at the Cursor plugin [cursor/plugins/pstack](https://github.com/cursor/plugins/blob/main/pstack/README.md), is ported to Claude Code at [michael-denyer/pstack-claude](https://github.com/michael-denyer/pstack-claude), and is adapted to OpenCode here. The chain is cursor/plugins pstack to pstack-claude to this repository. The current pin is `michael-denyer/pstack-claude` `8500f361` (pstack-claude main, observed 2026-10-05), absorbing `cursor/plugins` `e43c7ee` and PStack v0.15.9. The v0.15.13 skill `poteto-help` is carried ahead of the pin under `vendor/skills/`, because pstack-claude has not merged that sync.
 
 `pstack.lock.json` is the single source of the pinned upstream repository and commit. Its `portOf` object records the Cursor repository, the `pstack` path, and the latest absorbed Cursor commit. The Cursor original is the authority for fidelity.
 
-Vendored skills under `skills/` are byte-identical to the pinned upstream commit except for the substitutions declared in [CHANGES.md](CHANGES.md). No substitution currently edits a vendored body. The adapter skills under `adapter/skills/` are port-authored. [PORTING.md](PORTING.md) states the policy and the update workflow, and `scripts/upstream-status.py` reports upstream drift.
+Vendored skills under `skills/` are byte-identical to their source after LF normalization, which is the pinned upstream commit, the port-authored adapter skills under `adapter/skills/`, or the vendor source. The substitutions are declared in [CHANGES.md](CHANGES.md). No substitution currently edits a vendored body. [PORTING.md](PORTING.md) states the policy and the update workflow, and `scripts/upstream-status.py` reports upstream drift.
 
 ## Layout
 
 - `index.ts`, `package.json` are the plugin entrypoint and manifest.
 - `agents/` holds the hand-authored OpenCode agent profiles: `pstack-agent`, `pstack-reviewer`, `pstack-comment-sicko`. Model lines are injected by the workspace installer from `maxstack/models.json`; keep no `model:` line here.
 - `adapter/skills/` holds the hand-authored adapter skills `pstack-opencode`, `setup-pstack-opencode`, and `port-pstack`.
+- `vendor/skills/` holds upstream content carried ahead of the pin, mirrored into `skills/` by the build. It is upstream-sourced, not port-authored.
 - `adapter/AGENTS.md` is the historical global routing instruction, kept for reference.
 - `skills/` is generated. Do not hand-edit it.
-- `scripts/build.ps1` regenerates `skills/` from the pinned upstream and the adapter sources.
-- `scripts/verify-pin.py` checks the generated tree against the pin and the adapter sources.
+- `scripts/build.ps1` regenerates `skills/` from the pinned upstream, the adapter sources, and `vendor/skills/`.
+- `scripts/verify-pin.py` checks the generated tree against the pin, the adapter sources, and `vendor/skills/`.
 - `scripts/upstream-status.py` reports upstream drift against the pin.
 - `pstack.lock.json` pins the upstream `pstack-claude` repository and commit, plus the Cursor `portOf` source.
 - `PORTING.md` states the faithful-port policy and the update workflow. `CHANGES.md` declares the substitutions.
@@ -58,7 +59,7 @@ Do not run `opencode plugin add` for this package unless global activation is in
 
 ## Workspace pin
 
-The workspace pins this repository by commit. `stack.lock.json` in the workspace root and `pstack-opencode.lock.json` in `maxstack` both record the SHA the installer copies into `.opencode/plugins/pstack-opencode`. The package publishes `pstack.lock.json` in its `files` list, so a consumer can regenerate `skills/` from the same upstream commit.
+The workspace pins this repository by commit. `stack.lock.json` in the workspace root and `pstack-opencode.lock.json` in `maxstack` both record the SHA the installer copies into `.opencode/plugins/pstack-opencode`. The package publishes `pstack.lock.json`, `scripts/`, `adapter/`, and `vendor/skills/` in its `files` list, so a consumer can rebuild `skills/` from the same upstream commit with the package alone.
 
 `pstack.lock.json` is the single source of the upstream `repository` and `commit`. `scripts/build.ps1` reads both to regenerate `skills/`, and `verify-pin.yml` plus `scripts/verify-pin.py` read both to prove the generated tree matches the pin and the adapter sources. The check fails on any drift.
 
