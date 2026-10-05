@@ -74,8 +74,9 @@ export function defaultTranscriptRoots({ env = process.env, home = homedir(), ex
   const claude = join(env.CLAUDE_CONFIG_DIR || join(home, ".claude"), "projects");
   const codex = env.CODEX_HOME || join(home, ".codex");
   const piAgent = env.PI_CODING_AGENT_DIR || join(home, ".pi", "agent");
+  const copilot = join(env.COPILOT_HOME || join(home, ".copilot"), "session-state");
   const found = [claude, join(codex, "sessions"), join(codex, "archived_sessions"),
-    join(piAgent, "sessions"), join(piAgent, "pstack")].filter((root) => exists(root));
+    join(piAgent, "sessions"), join(piAgent, "pstack"), copilot].filter((root) => exists(root));
   return found.length ? found : [claude];
 }
 

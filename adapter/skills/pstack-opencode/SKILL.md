@@ -31,13 +31,13 @@ The global `AGENTS.md` routing instruction is best-effort. For guaranteed activa
 
 Do not translate PStack's Claude model aliases such as `opus`, `fable`, or `sonnet` into OpenCode model IDs. Select real provider/model IDs from `/models`. Use the current session model unless a named OpenCode agent profile sets a model.
 
-## Codex and Pi platform maps
+## Codex, Pi, and Copilot platform maps
 
-`poteto-mode` tells a reader on Codex to open `references/codex-tools.md` and a reader on Pi to open `references/pi-tools.md`. Neither mapping applies on OpenCode. Read this skill instead for the OpenCode equivalent of a Claude tool, model, or skill. Do not claim the Codex or Pi mappings work here.
+`poteto-mode` tells a reader on Codex to open `references/codex-tools.md`, a reader on Pi to open `references/pi-tools.md`, and a reader on GitHub Copilot, CLI or app, to open `references/copilot-tools.md`. None of these mappings applies on OpenCode. Read this skill instead for the OpenCode equivalent of a Claude tool, model, or skill. Do not claim the Codex, Pi, or Copilot mappings work here.
 
 ## Model configuration
 
-OpenCode V2 accepts an `instructions` array in `opencode.json(c)` but does not load its entries. Do not use `~/.config/opencode/pstack-models.md` through that setting. The upstream `setup-pstack` sheet does not control OpenCode subagent models. The upstream `setup-pstack` runtime table has an `opencode` row that names `~/.config/opencode/pstack-models.md` and tells the user to add it to the `instructions` array. That row is superseded. Use the `setup-pstack-opencode` skill, which sets a model on the agent profile instead.
+OpenCode V2 accepts an `instructions` array in `opencode.json(c)` but does not load its entries. Do not use `~/.config/opencode/pstack-models.md` through that setting. The upstream `setup-pstack` sheet does not control OpenCode subagent models. The upstream `setup-pstack` runtime table has an `opencode` row that names `~/.config/opencode/pstack-models.md` and tells the user to add it to the `instructions` array. That row is superseded. The table's GitHub Copilot row, the `setup-pstack/copilot.md` setup path, and the `setup-pstack/scripts/` sheet validators (`check-sheet.sh`, `read-sheet.sh`, `sheet.awk`, `check-sheet.awk`) are Copilot-specific and do not apply here. Use the `setup-pstack-opencode` skill, which sets a model on the agent profile instead.
 
 For the current setup, PStack subagents inherit the active session model. To add a role-specific model, create or edit a named agent profile under `~/.config/opencode/agents/` or the project's `.opencode/agents/`. Put the confirmed `provider/model` and optional `#variant` in the profile. Keep the agent ID mapping in `AGENTS.md`. Do not claim role-specific routing until a real child session reports the selected model.
 
@@ -58,7 +58,7 @@ The `poteto-help` skill answers setup, `/poteto-mode`, and skill-choice question
 - The model sheet that `/setup-pstack` writes and `CLAUDE.md` imports does not apply. Use the `setup-pstack-opencode` skill and set the model on the agent profile.
 - The SessionStart hook is the plugin's session context hook in `index.ts`.
 - The `subagent_type: "pstack:poteto-agent"` value maps to the installed `pstack-agent` ID.
-- The body's external links are not OpenCode documentation. That covers the Claude Code skills docs link, the cursor/plugins guide pages, the pstack-claude README, and the pstack-claude public-copy base. Read the OpenCode guide the plugin ships under `docs/guide/` instead.
+- The body's external links are not OpenCode documentation. That covers the pstack-claude README, the pstack-claude `docs/reference.md` pages, and the pstack-claude public-copy base. Read the OpenCode guide the plugin ships under `docs/guide/` instead.
 - The note that the `principle-*` leaves are hidden from the slash menu does not hold. OpenCode registers every skill through the transform, so every ID is loadable with the `skill` tool.
 
 ## OpenChamber-specific options

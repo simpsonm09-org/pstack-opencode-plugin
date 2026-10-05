@@ -13,7 +13,7 @@ The port stays faithful to the Cursor original. Where the Claude port and the or
 
 ## Fidelity policy
 
-- Every vendored file under `skills/` is byte-identical to its source after LF normalization. The tree has three source roots, the pinned `pstack-claude` clone, the port-authored `adapter/skills/`, and the upstream content in `vendor/skills/` carried ahead of the pin. `scripts/verify-pin.py` enforces all three.
+- Every vendored file under `skills/` is byte-identical to its source after LF normalization. The tree has three source roots, the pinned `pstack-claude` clone, the port-authored `adapter/skills/`, and the upstream content in `vendor/skills/` carried ahead of the pin. `scripts/verify-pin.py` enforces all three. `vendor/skills/` is currently empty, and it remains available for a future carry.
 - The OpenCode adaptation lives in port-authored files: `adapter/skills/`, `agents/`, `index.ts`, and `package.json`.
 - A change that needs OpenCode-specific behavior goes in an adapter skill. It never edits a vendored body.
 - Every substitution is declared in `CHANGES.md`.

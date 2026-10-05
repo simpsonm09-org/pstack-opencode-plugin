@@ -19,7 +19,7 @@ The plugin ships an OpenCode-adapted guide under `docs/guide/`. Start at [docs/R
 
 ## Upstream sources of truth
 
-PStack starts at the Cursor plugin [cursor/plugins/pstack](https://github.com/cursor/plugins/blob/main/pstack/README.md), is ported to Claude Code at [michael-denyer/pstack-claude](https://github.com/michael-denyer/pstack-claude), and is adapted to OpenCode here. The chain is cursor/plugins pstack to pstack-claude to this repository. The current pin is `michael-denyer/pstack-claude` `8500f361` (pstack-claude main, observed 2026-10-05), absorbing `cursor/plugins` `e43c7ee` and PStack v0.15.9. The v0.15.13 skill `poteto-help` is carried ahead of the pin under `vendor/skills/`, because pstack-claude has not merged that sync.
+PStack starts at the Cursor plugin [cursor/plugins/pstack](https://github.com/cursor/plugins/blob/main/pstack/README.md), is ported to Claude Code at [michael-denyer/pstack-claude](https://github.com/michael-denyer/pstack-claude), and is adapted to OpenCode here. The chain is cursor/plugins pstack to pstack-claude to this repository. The current pin is `michael-denyer/pstack-claude` `8d3aa571` (version 0.9.73), absorbing `cursor/plugins` `2cbf585` and PStack v0.15.13.
 
 `pstack.lock.json` is the single source of the pinned upstream repository and commit. Its `portOf` object records the Cursor repository, the `pstack` path, and the latest absorbed Cursor commit. The Cursor original is the authority for fidelity.
 
@@ -30,7 +30,7 @@ Vendored skills under `skills/` are byte-identical to their source after LF norm
 - `index.ts`, `package.json` are the plugin entrypoint and manifest.
 - `agents/` holds the hand-authored OpenCode agent profiles: `pstack-agent`, `pstack-reviewer`, `pstack-comment-sicko`. Model lines are injected by the workspace installer from `maxstack/models.json`; keep no `model:` line here.
 - `adapter/skills/` holds the hand-authored adapter skills `pstack-opencode`, `setup-pstack-opencode`, and `port-pstack`.
-- `vendor/skills/` holds upstream content carried ahead of the pin, mirrored into `skills/` by the build. It is upstream-sourced, not port-authored.
+- `vendor/skills/` is the carry slot for upstream content ahead of the pin, mirrored into `skills/` by the build. It is currently empty, and the mechanism remains for a future carry. It is upstream-sourced, not port-authored.
 - `adapter/AGENTS.md` is the historical global routing instruction, kept for reference.
 - `skills/` is generated. Do not hand-edit it.
 - `scripts/build.ps1` regenerates `skills/` from the pinned upstream, the adapter sources, and `vendor/skills/`.

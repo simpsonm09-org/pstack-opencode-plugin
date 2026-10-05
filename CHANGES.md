@@ -2,7 +2,7 @@
 
 This repository adapts the pinned `michael-denyer/pstack-claude` tree to OpenCode. The Cursor original `cursor/plugins/pstack` is the authority for fidelity. `PORTING.md` states the policy.
 
-This tree is pinned to `michael-denyer/pstack-claude` `8500f361` (pstack-claude main, observed 2026-10-05), which absorbs `cursor/plugins` `e43c7ee` (PStack v0.15.9). The v0.15.13 skill `poteto-help` is carried ahead of the pin from pstack-claude PR #214 (`50b8580`, syncing `cursor/plugins` `2cbf585`), because pstack-claude has not merged that sync.
+This tree is pinned to `michael-denyer/pstack-claude` `8d3aa571` (version 0.9.73), absorbing `cursor/plugins` `2cbf585` (PStack v0.15.13).
 
 ## Fidelity rule
 
@@ -16,9 +16,7 @@ An entry moves into the pinned set when the pin advances to a commit that carrie
 
 The vendor copy's fidelity to its source pstack-claude commit is checked by hand at port time, because `scripts/verify-pin.py` compares `skills/` against the local `vendor/skills/` copy and not against the source commit, which is not in the pinned clone.
 
-Current entries:
-
-- `poteto-help`, from pstack-claude PR #214 (`50b8580`, syncing `cursor/plugins` `2cbf585`).
+There are no current entries. `poteto-help` moved into the pinned set when the pin advanced to `8d3aa571`, so `vendor/skills/` is empty and the mechanism remains available for a future carry.
 
 ## Declared substitutions
 
