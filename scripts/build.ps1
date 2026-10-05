@@ -13,6 +13,7 @@ $repoRoot = Split-Path -Parent $PSScriptRoot
 $lock = Get-Content -LiteralPath (Join-Path $repoRoot 'pstack.lock.json') -Raw | ConvertFrom-Json
 $upstreamSkills = Join-Path $Clone $lock.skillsPath
 $adapterSkills = Join-Path $repoRoot 'adapter\skills'
+$vendorSkills = Join-Path $repoRoot 'vendor\skills'
 $skillsTarget = Join-Path $repoRoot 'skills'
 $utf8 = New-Object System.Text.UTF8Encoding($false)
 $binaryExtensions = @('.png', '.jpg', '.jpeg', '.gif', '.ico', '.webp', '.woff', '.woff2', '.ttf', '.otf', '.pdf', '.zip', '.gz', '.tgz', '.bz2', '.7z', '.exe', '.dll', '.so', '.dylib', '.bin', '.wasm', '.mp4', '.mov')
@@ -81,6 +82,12 @@ Get-ChildItem -LiteralPath $adapterSkills -Directory | ForEach-Object {
     $adapterNames += $_.Name
 }
 
+$vendorNames = @()
+Get-ChildItem -LiteralPath $vendorSkills -Directory | ForEach-Object {
+    Copy-Tree -Source $_.FullName -Destination (Join-Path $skillsTarget $_.Name)
+    $vendorNames += $_.Name
+}
+
 Copy-Item -LiteralPath (Join-Path $Clone 'NOTICE-skills.md') -Destination (Join-Path $repoRoot 'NOTICE') -Force
 Copy-Item -LiteralPath (Join-Path $Clone 'LICENSE') -Destination (Join-Path $repoRoot 'LICENSE') -Force
 Copy-Item -LiteralPath (Join-Path $Clone 'LICENSE-cursor-team-kit') -Destination (Join-Path $repoRoot 'LICENSE-cursor-team-kit') -Force
@@ -90,4 +97,4 @@ foreach ($name in @('NOTICE', 'LICENSE', 'LICENSE-cursor-team-kit', 'NOTICE-port
 }
 
 $fileCount = (Get-ChildItem -LiteralPath $skillsTarget -Recurse -File | Measure-Object).Count
-Write-Host "Vendored $($upstreamNames.Count) upstream skills and $($adapterNames.Count) adapter skills ($fileCount files) from $($lock.commit.Substring(0, 12))."
+Write-Host "Vendored $($upstreamNames.Count) upstream skills, $($adapterNames.Count) adapter skills, and $($vendorNames.Count) vendor skills ($fileCount files) from $($lock.commit.Substring(0, 12))."

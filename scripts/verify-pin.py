@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Verify the vendored skills match the pinned upstream and the adapter sources.
 
-Compares skills/ against the pinned pstack-claude clone and adapter/skills,
-ignoring CRLF versus LF. Exit 0 on a match, 1 on any drift.
+Compares skills/ against the pinned pstack-claude clone, adapter/skills, and
+vendor/skills, ignoring CRLF versus LF. Exit 0 on a match, 1 on any drift.
 """
 
 import argparse
@@ -29,6 +29,12 @@ def relative_files(root: pathlib.Path) -> set[str]:
     if not root.is_dir():
         return set()
     return {str(p.relative_to(root)).replace("\\", "/") for p in root.rglob("*") if p.is_file()}
+
+
+def subdirectory_names(root: pathlib.Path) -> set[str]:
+    if not root.is_dir():
+        return set()
+    return {p.name for p in root.iterdir() if p.is_dir()}
 
 
 def main() -> int:
@@ -58,12 +64,17 @@ def main() -> int:
         print(f"FAIL: pinned skills not found at {upstream_root}", file=sys.stderr)
         return 1
 
-    pairs: list[tuple[str, pathlib.Path, pathlib.Path]] = []
-    for source_root, label in (
+    adapter_skills = repo_root / "adapter" / "skills"
+    vendor_skills = repo_root / "vendor" / "skills"
+    source_roots = (
         (upstream_root, "upstream"),
-        (repo_root / "adapter" / "skills", "adapter"),
-    ):
-        for name in sorted(p.name for p in source_root.iterdir() if p.is_dir()):
+        (adapter_skills, "adapter"),
+        (vendor_skills, "vendor"),
+    )
+
+    pairs: list[tuple[str, pathlib.Path, pathlib.Path]] = []
+    for source_root, label in source_roots:
+        for name in sorted(subdirectory_names(source_root)):
             pairs.append((f"{label} skill {name}", source_root / name, vendored / name))
 
     checked = 0
@@ -81,6 +92,16 @@ def main() -> int:
             if normalize(source / rel) != normalize(target / rel):
                 failures.append(f"{label}: differs {rel}")
             checked += 1
+
+    sourced_names = set().union(*(subdirectory_names(root) for root, _ in source_roots))
+    for orphan in sorted(subdirectory_names(vendored) - sourced_names):
+        failures.append(f"skills/{orphan}/ is not named by any source root")
+
+    for redundant in sorted(subdirectory_names(vendor_skills) & subdirectory_names(upstream_root)):
+        failures.append(
+            f"vendor/skills/{redundant}/: the pin now carries the skill, "
+            f"so the vendor/skills/{redundant}/ copy must be removed"
+        )
 
     if failures:
         for failure in failures:
