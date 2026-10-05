@@ -7,6 +7,8 @@ function ciCell(row: T.PrSnapshot): string {
   switch (row.ci.kind) {
     case "ci-clean":
       return "✅";
+    case "ci-none":
+      return "➖ no checks";
     case "ci-pending":
       return `⏳ ${row.ci.pending.length} pending${was}`;
     case "ci-failing":
@@ -118,7 +120,9 @@ function renderBlocker(blocker: T.MergeBlocker | StatusQueryBlocker): string {
               ? "get the required approving review"
               : blocker.reason === "merge-blocked"
                 ? "find the branch protection rule holding the merge (mergeStateStatus=BLOCKED with clean CI)"
-                : "resolve the changes-requested review before waiting for the merge queue";
+                : blocker.reason === "changes-requested"
+                  ? "resolve the changes-requested review before waiting for the merge queue"
+                  : (blocker.reason satisfies never);
       return [
         `BLOCKER: ${blocker.reason}`,
         `pr=${blocker.pr.number}`,
@@ -157,7 +161,7 @@ export function renderPretty(verdict: T.WatcherVerdict): string {
     case "READY": {
       const detail =
         verdict.scope.kind === "single" && verdict.scope.pr.kind === "ready-pr"
-          ? `\nmergeStateStatus=${verdict.scope.pr.proof.ci.github.mergeStateStatus}\nreviewDecision=${verdict.scope.pr.proof.gate.reviewDecision}\nisDraft=${verdict.scope.pr.proof.gate.draft === "draft-allowed"}${verdict.scope.pr.proof.gate.draft === "draft-allowed" ? "\nnote=draft allowed (--allow-draft); leave draft \u2014 do not mark ready" : ""}`
+          ? `\nmergeStateStatus=${verdict.scope.pr.proof.ci.github.mergeStateStatus}\nreviewDecision=${verdict.scope.pr.proof.gate.reviewDecision}\nisDraft=${verdict.scope.pr.proof.gate.draft === "draft-allowed"}${verdict.scope.pr.proof.gate.draft === "draft-allowed" ? "\nnote=draft allowed (--allow-draft); leave draft \u2014 do not mark ready" : ""}${verdict.scope.pr.proof.ci.kind === "ci-none" ? "\nchecks=none reported on the head commit" : ""}`
           : "";
       return `READY: no merge conflicts, no unresolved review threads, no failing or pending checks${detail}\n`;
     }

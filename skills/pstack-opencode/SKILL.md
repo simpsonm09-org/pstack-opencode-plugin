@@ -21,14 +21,34 @@ The global `AGENTS.md` routing instruction is best-effort. For guaranteed activa
 | `TaskCreate`, `TaskUpdate`, or `TodoWrite` | Use an uncommitted `todo.md` checklist when no task-tracking tool is available. |
 | Claude Code `run` | No equivalent built-in skill. Use a project verification skill and OpenCode's available shell or browser tools. |
 | Claude Code `loop` | No equivalent built-in skill. Re-check manually or use an explicit OpenChamber scheduled task when the task fits. |
+| `subagent_type: "pstack:poteto-agent"` and the namespaced effort agents `pstack:poteto-agent-<level>` and `pstack:effort-<level>` | OpenCode has no namespaced or effort agent types. Use the installed `pstack-agent` ID for any PStack worker. There is no per-call effort agent, so a variant belongs in the agent profile's `model` line. |
+| `run_in_background: true` | Use the `subagent` tool's `background: true` field. A background subagent returns at once and notifies when done. |
+| `plugin-dev:skill-development` | No bundled OpenCode equivalent. Author the SKILL.md per the Agent Skills spec, keeping `name` and `description` frontmatter and progressive disclosure. |
+| `.claude/skills/verify/` | Write the project verification skill to `.opencode/skills/`, OpenCode's project skill directory. `.claude/skills/` and `.agents/skills/` also resolve. |
+| `~/.claude/orchestrate/<slug>/` | Use a persistent directory outside the repo that is not `~/.claude`. |
+| `CLAUDE.md` | `AGENTS.md`. |
+| `pstack-models.mdc` or the `pstack-models.md` override sheet | Not loaded by OpenCode. See the `setup-pstack-opencode` skill. |
 
 Do not translate PStack's Claude model aliases such as `opus`, `fable`, or `sonnet` into OpenCode model IDs. Select real provider/model IDs from `/models`. Use the current session model unless a named OpenCode agent profile sets a model.
 
+## Codex and Pi platform maps
+
+`poteto-mode` tells a reader on Codex to open `references/codex-tools.md` and a reader on Pi to open `references/pi-tools.md`. Neither mapping applies on OpenCode. Read this skill instead for the OpenCode equivalent of a Claude tool, model, or skill. Do not claim the Codex or Pi mappings work here.
+
 ## Model configuration
 
-OpenCode V2 accepts an `instructions` array in `opencode.json(c)` but does not load its entries. Do not use `~/.config/opencode/pstack-models.md` through that setting. The upstream `setup-pstack` sheet does not control OpenCode subagent models.
+OpenCode V2 accepts an `instructions` array in `opencode.json(c)` but does not load its entries. Do not use `~/.config/opencode/pstack-models.md` through that setting. The upstream `setup-pstack` sheet does not control OpenCode subagent models. The upstream `setup-pstack` runtime table has an `opencode` row that names `~/.config/opencode/pstack-models.md` and tells the user to add it to the `instructions` array. That row is superseded. Use the `setup-pstack-opencode` skill, which sets a model on the agent profile instead.
 
 For the current setup, PStack subagents inherit the active session model. To add a role-specific model, create or edit a named agent profile under `~/.config/opencode/agents/` or the project's `.opencode/agents/`. Put the confirmed `provider/model` and optional `#variant` in the profile. Keep the agent ID mapping in `AGENTS.md`. Do not claim role-specific routing until a real child session reports the selected model.
+
+## Skill-specific notes
+
+| Upstream skill or reference | OpenCode behavior |
+| --- | --- |
+| `architect` runner models | The skill takes runner models from the `architect runners` line of the `pstack-models.md` override sheet, falling back to the aliases in its `## Models` section, such as `opus`, `fable`, and `sonnet`. Do not pass those names. Choose a real `provider/model` available in the session, or inherit the session model. |
+| `correct` rule table | The skill keeps its rule table in the agent instruction file. On OpenCode that is `AGENTS.md`. |
+| `benchmark-checklist` tooling | The checklist names Unix tools such as `uptime`, `nproc`, `pidstat`, `strace`, `py-spy`, and `perf`. Some are absent on Windows. Use the platform equivalent and keep the checklist's seven questions. `node --cpu-prof` is the cross-platform baseline. |
+| `create-verification-skill` and `maintain-verification-skill` output | Both target `.claude/skills/verify/`. On OpenCode, write the skill to `.opencode/skills/`, with `.claude/skills/` and `.agents/skills/` also resolving. |
 
 ## OpenChamber-specific options
 

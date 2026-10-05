@@ -30,7 +30,7 @@ The script reads `pstack.lock.json` and `NOTICE-port.md`, fetches the pinned rep
    - `commit` to the new `pstack-claude` commit.
    - `portOf.absorbedCommit` to the newest absorbed `cursor/plugins` commit.
 6. Rebuild and mirror. `pwsh -File scripts/build.ps1` regenerates `skills/` from the pin and the adapter sources. When the pinned clone is unavailable, copy each adapter skill into `skills/<id>/` with identical LF bytes.
-7. Verify. `python scripts/verify-pin.py --clone <pinned clone>` prints PASS and the file count.
+7. Verify. `python scripts/verify-pin.py --clone <pinned clone>` compares `skills/` against the pinned upstream skills and the adapter skills. It prints PASS and the file count on success, and fails on any missing, extra, or differing file.
 8. Commit, push the branch to the personal fork and the org repository, and open a pull request against upstream `main`.
 
 ## Rules

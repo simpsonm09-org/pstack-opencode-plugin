@@ -10,6 +10,7 @@ import type {
   ReviewThread,
   RollupPage,
 } from "./types.ts";
+import { parsePullRequest } from "./github.ts";
 import { parsePrNumber } from "./types.ts";
 
 export interface FakeReaderOptions {
@@ -57,7 +58,7 @@ export function failedCheck(name = "ci"): Check {
 }
 
 export function fakeReader(
-  options: FakeReaderOptions = {},
+  options: FakeReaderOptions = {}
 ): GitHubReader & { readonly calls: readonly string[] } {
   const calls: string[] = [];
   const context = options.current ?? {
@@ -93,7 +94,7 @@ export function fakeReader(
     },
     async pullRequest(requested) {
       calls.push("pullRequest");
-      return { ...defaults, ...options.facts, context: requested };
+      return parsePullRequest({ ...defaults, ...options.facts }, requested);
     },
     async revision(requested) {
       calls.push("revision");
@@ -114,7 +115,13 @@ export function fakeReader(
     },
     async checkRollupPage(_requested, after) {
       calls.push(`checkRollupPage:${after ?? "null"}`);
-      return options.rollupPages?.[page++] ?? { checks: [], endCursor: null };
+      return (
+        options.rollupPages?.[page++] ?? {
+          kind: "contexts",
+          checks: [],
+          endCursor: null,
+        }
+      );
     },
     async reviewThreads() {
       calls.push("reviewThreads");

@@ -13,9 +13,13 @@ When it loads it does two things:
 - It cannot set the workspace model. That stays in the workspace `opencode.jsonc`, and the per-role models come from `maxstack/models.json`.
 - Transform-registered skills get a base directory but no `<skill_files>` sample. PStack skills name their own supporting files, so the agent still finds them.
 
+## Guide
+
+The plugin ships an OpenCode-adapted guide under `docs/guide/`. Start at [docs/README.md](docs/README.md), the documentation index. It links the guide pages and the repository root docs, and covers the 24 coding standards, verification, the workflow, and prompts. The guide pages live in `docs/guide/`.
+
 ## Upstream sources of truth
 
-PStack starts at the Cursor plugin [cursor/plugins/pstack](https://github.com/cursor/plugins/blob/main/pstack/README.md), is ported to Claude Code at [michael-denyer/pstack-claude](https://github.com/michael-denyer/pstack-claude), and is adapted to OpenCode here. The chain is cursor/plugins pstack to pstack-claude to this repository.
+PStack starts at the Cursor plugin [cursor/plugins/pstack](https://github.com/cursor/plugins/blob/main/pstack/README.md), is ported to Claude Code at [michael-denyer/pstack-claude](https://github.com/michael-denyer/pstack-claude), and is adapted to OpenCode here. The chain is cursor/plugins pstack to pstack-claude to this repository. The current pin is `michael-denyer/pstack-claude` `dc8e617`, absorbing `cursor/plugins` `e43c7ee` and PStack v0.15.9.
 
 `pstack.lock.json` is the single source of the pinned upstream repository and commit. Its `portOf` object records the Cursor repository, the `pstack` path, and the latest absorbed Cursor commit. The Cursor original is the authority for fidelity.
 
@@ -33,6 +37,7 @@ Vendored skills under `skills/` are byte-identical to the pinned upstream commit
 - `scripts/upstream-status.py` reports upstream drift against the pin.
 - `pstack.lock.json` pins the upstream `pstack-claude` repository and commit, plus the Cursor `portOf` source.
 - `PORTING.md` states the faithful-port policy and the update workflow. `CHANGES.md` declares the substitutions.
+- `docs/guide/` is the port-authored guide, adapted for OpenCode.
 
 ## Build
 
@@ -43,11 +48,11 @@ pwsh -File scripts/build.ps1
 python3 scripts/verify-pin.py --clone "$env:LOCALAPPDATA\maxstack\pstack-claude"
 ```
 
-`NOTICE`, `LICENSE`, and `NOTICE-port.md` carry the upstream attribution and are refreshed by the build.
+`NOTICE`, `LICENSE`, `LICENSE-cursor-team-kit`, and `NOTICE-port.md` carry the upstream attribution and are refreshed by the build.
 
 ## Install
 
-`maxstack` consumes this repository. Its `Install-Workspace.ps1` copies the package into `D:\dev\simpsonm09\.opencode\plugins\pstack-opencode` and runs `npm install` there, because the plugin needs `@opencode/plugin` in its own `node_modules`.
+`maxstack` consumes this repository. Its `Install-Workspace.ps1` copies the package into `.opencode/plugins/pstack-opencode` in the workspace and runs `npm install` there, because the plugin needs `@opencode/plugin` in its own `node_modules`.
 
 Do not run `opencode plugin add` for this package unless global activation is intended. The plugin is active only for sessions under the workspace that installs it.
 
