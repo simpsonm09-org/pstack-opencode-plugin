@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { type CliRuntime, main, parseArgs } from "./cli.ts";
+import { WatchDeadline } from "./deadline.ts";
 import { fakeReader, passingCheck } from "./fakes.test-helper.ts";
 import { renderJson, renderPretty } from "./render.ts";
 import type { GitHubReader, WatcherVerdict } from "./types.ts";
@@ -19,6 +20,7 @@ function testRuntime(reader: GitHubReader): {
     stderr,
     runtime: {
       reader,
+      deadline: new WatchDeadline(0, () => 0),
       clock: {
         now: () => 0,
         observedAt: () => "2026-07-26T00:00:00.000Z",
@@ -213,6 +215,37 @@ describe("main", () => {
         ci: { kind: "ci-github-rejected" },
       },
     });
+  });
+
+  it("names the absence of checks in the status table and the READY verdict", async () => {
+    const argv = [
+      "--owner",
+      "owner",
+      "--repo",
+      "repo",
+      "--pr",
+      "1",
+      "--pretty",
+    ];
+    const noChecks = () =>
+      testRuntime(
+        fakeReader({
+          facts: { reviewDecision: null },
+          fastPath: { kind: "none-reported" },
+          rollupPages: [{ kind: "no-rollup" }],
+          commitRollups: [{ oid: "head", state: null }],
+        })
+      );
+    const status = noChecks();
+    expect(await main([...argv, "--status-only"], status.runtime)).toBe(0);
+    expect(status.stdout.join("")).toContain(
+      "| [#1](https://github.com/owner/repo/pull/1) | ➖ no checks | ✅ | ✅ |"
+    );
+    const ready = noChecks();
+    expect(await main(argv, ready.runtime)).toBe(0);
+    expect(ready.stdout.join("")).toBe(
+      "READY: no merge conflicts, no unresolved review threads, no failing or pending checks\nmergeStateStatus=CLEAN\nreviewDecision=null\nisDraft=false\nchecks=none reported on the head commit\n"
+    );
   });
 
   it("shows help without touching the reader", async () => {

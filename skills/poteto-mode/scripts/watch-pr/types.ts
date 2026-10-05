@@ -39,17 +39,25 @@ export type ReviewDecision =
   | "CHANGES_REQUESTED"
   | "REVIEW_REQUIRED"
   | null;
-export interface PullRequestFacts extends Omit<LandingRevision, "headRefOid" | "baseRefOid"> {
+interface PullRequestFields {
+  readonly context: PrContext;
   readonly mergeable: "MERGEABLE" | "CONFLICTING" | "UNKNOWN";
   readonly mergeStateStatus: MergeStateStatus;
   readonly reviewDecision: ReviewDecision;
   readonly headRefOid: string | null;
   readonly baseRefOid: string | null;
   readonly headRefName: string;
+  readonly baseRefName: string;
   readonly state: "OPEN" | "CLOSED" | "MERGED";
   readonly mergedAt: string | null;
   readonly isDraft: boolean;
 }
+export type PullRequestFacts = PullRequestFields &
+  (
+    | (LandingRevision & { readonly state: "OPEN" })
+    | { readonly state: "CLOSED" }
+    | { readonly state: "MERGED" }
+  );
 export interface OpenPullRequest {
   readonly number: PrNumber;
   readonly headRepository: Repository | null;
@@ -87,10 +95,13 @@ export type Check =
     });
 export type FailedCheck = Extract<Check, { readonly kind: "failed" }>;
 export type PendingCheck = Extract<Check, { readonly kind: "pending" }>;
-export interface CheckRead {
+export interface ReportedChecks {
+  readonly kind: "reported";
   readonly source: "gh-pr-checks" | "graphql-rollup";
   readonly checks: NonEmpty<Check>;
 }
+/** `resolveChecks` owns what counts as `no-checks`. */
+export type CheckRead = ReportedChecks | { readonly kind: "no-checks" };
 export interface CommitRollup {
   readonly oid: string;
   readonly state: RollupState;
@@ -115,7 +126,7 @@ export type GitHubMergeAllowed =
     };
 export type GitHubMergeAssessment = GitHubMergeAllowed | GitHubMergeRefusal;
 interface CiBase {
-  readonly source: CheckRead["source"];
+  readonly source: ReportedChecks["source"];
   readonly all: NonEmpty<Check>;
   readonly hadPreviousPassingCi: boolean;
 }
@@ -142,7 +153,19 @@ export type CiClean = CiBase & {
   readonly pending: readonly [];
   readonly github: GitHubMergeAllowed;
 };
-export type CiState = CiFailing | CiGithubRejected | CiPending | CiClean;
+export interface CiNone {
+  readonly kind: "ci-none";
+  readonly failed: readonly [];
+  readonly pending: readonly [];
+  readonly hadPreviousPassingCi: false;
+  readonly github: GitHubMergeAllowed;
+}
+export type CiState =
+  | CiFailing
+  | CiGithubRejected
+  | CiPending
+  | CiClean
+  | CiNone;
 export type PrSnapshot =
   | {
       readonly kind: "merged" | "closed";
@@ -152,7 +175,7 @@ export type PrSnapshot =
   | {
       readonly kind: "open";
       readonly context: PrContext;
-      readonly facts: PullRequestFacts & LandingRevision;
+      readonly facts: Extract<PullRequestFacts, { readonly state: "OPEN" }>;
       readonly threads: readonly ReviewThread[];
       readonly ci: CiState;
       readonly reviewAutomationRunning: boolean;
@@ -164,7 +187,7 @@ export interface ReadyPr {
     readonly revision: LandingRevision;
     readonly mergeability: "clear";
     readonly threads: readonly [];
-    readonly ci: CiClean;
+    readonly ci: CiClean | CiNone;
     readonly gate: {
       readonly state: "OPEN";
       readonly reviewDecision: Exclude<
@@ -387,27 +410,29 @@ export type QueueTerminalVerdict =
   | TimeoutVerdict;
 export type ChecksFastPath =
   | { readonly kind: "checks"; readonly checks: readonly Check[] }
+  | { readonly kind: "none-reported" }
   | {
       readonly kind: "unusable";
       readonly exitCode: number;
       readonly stderr: string;
     };
-export interface RollupPage {
-  readonly checks: readonly Check[];
-  readonly endCursor: string | null;
-}
+export type RollupPage =
+  | {
+      readonly kind: "contexts";
+      readonly checks: readonly Check[];
+      readonly endCursor: string | null;
+    }
+  | { readonly kind: "no-rollup" };
 export interface GitHubReader {
   originRepo(): Promise<Repository | null>;
   currentPr(pr: PrNumber | null): Promise<PrContext>;
   pullRequest(context: PrContext): Promise<PullRequestFacts>;
-  revision(
-    context: PrContext,
-  ): Promise<LandingRevision>;
+  revision(context: PrContext): Promise<LandingRevision>;
   openPullRequests(repository: Repository): Promise<readonly OpenPullRequest[]>;
   checksFastPath(context: PrContext): Promise<ChecksFastPath>;
   checkRollupPage(
     context: PrContext,
-    after: string | null,
+    after: string | null
   ): Promise<RollupPage>;
   reviewThreads(context: PrContext): Promise<readonly ReviewThread[]>;
   commitRollups(context: PrContext): Promise<readonly CommitRollup[]>;

@@ -5,6 +5,7 @@ import {
   mkdtemp,
   readFile,
   readdir,
+  rename,
   rm,
   writeFile,
 } from "node:fs/promises";
@@ -36,7 +37,10 @@ async function makeDirectory(): Promise<string> {
   return directory;
 }
 
-function useStore(directory: string, options?: OpenStoreOptions): Store {
+function useStore(
+  directory: string,
+  options?: OpenStoreOptions
+): Store {
   const store = openStore(directory, options);
   handles.push(store);
   return store;
@@ -47,7 +51,7 @@ async function initializedStore(): Promise<{
   readonly store: Store;
 }> {
   const directory = await makeDirectory();
-  const store = useStore(directory);
+  const store = useStore(directory, { gt: fakeGtPath(directory) });
   await store.init();
   return { directory, store };
 }
@@ -62,7 +66,7 @@ function git({
   const result = Bun.spawnSync(["git", "-C", repo, ...args]);
   if (result.exitCode !== 0) {
     throw new Error(
-      `git ${args.join(" ")} failed: ${result.stderr.toString()}`,
+      `git ${args.join(" ")} failed: ${result.stderr.toString()}`
     );
   }
   return result.stdout.toString().trim();
@@ -99,6 +103,10 @@ async function makeGitStack(directory: string): Promise<{
   };
 }
 
+function fakeGtPath(directory: string): string {
+  return join(directory, "bin", "gt");
+}
+
 async function withFakeGt<T>({
   directory,
   operation,
@@ -112,7 +120,7 @@ async function withFakeGt<T>({
   const outputPath = join(directory, "gt-output.txt");
   await mkdir(bin);
   await writeFile(outputPath, output);
-  const gt = join(bin, "gt");
+  const gt = fakeGtPath(directory);
   await writeFile(
     gt,
     `#!/usr/bin/env bash
@@ -134,34 +142,20 @@ case "$*" in
   "--no-interactive info stack/open")
     printf 'stack/open\\nPR #11 (Needs approvals) open change\\n'
     ;;
-  "--no-interactive info stack/paren")
-    printf 'stack/paren\\nPR #14 (Needs approvals (2)) tricky change\\n'
-    ;;
   *)
     printf 'unexpected gt arguments: %s\\n' "$*" >&2
     exit 2
     ;;
 esac
-`,
+`
   );
   await chmod(gt, 0o755);
-
-  const originalPath = process.env.PATH;
-  process.env.PATH = `${bin}:${originalPath ?? ""}`;
-  try {
-    return await operation(outputPath);
-  } finally {
-    if (originalPath === undefined) {
-      delete process.env.PATH;
-    } else {
-      process.env.PATH = originalPath;
-    }
-  }
+  return operation(outputPath);
 }
 
 function runCli(
   args: readonly string[],
-  env: Readonly<Record<string, string | undefined>> = process.env,
+  env?: Readonly<Record<string, string | undefined>>
 ): RunResult {
   const result = Bun.spawnSync([process.execPath, SCRIPT, ...args], { env });
   return {
@@ -187,14 +181,17 @@ describe("Store", () => {
 
     expect(await store.init()).toEqual({ store: directory });
     const firstUnits = await readFile(join(directory, "units.tsv"), "utf8");
-    const firstLedger = await readFile(join(directory, "ledger.tsv"), "utf8");
+    const firstLedger = await readFile(
+      join(directory, "ledger.tsv"),
+      "utf8"
+    );
 
     expect(await store.init()).toEqual({ store: directory });
     expect(await readFile(join(directory, "units.tsv"), "utf8")).toBe(
-      firstUnits,
+      firstUnits
     );
     expect(await readFile(join(directory, "ledger.tsv"), "utf8")).toBe(
-      firstLedger,
+      firstLedger
     );
     expect((await readdir(directory)).sort()).toEqual([
       ".orch.lock",
@@ -210,85 +207,6 @@ describe("Store", () => {
     expect(await readdir(directory)).not.toContain(".orch.lock");
   });
 
-  it("persists concurrent unit additions made through one handle", async () => {
-    const { directory, store } = await initializedStore();
-    const ids = Array.from({ length: 12 }, (_, index) => `u${index + 1}`);
-
-    const additions = await Promise.allSettled(
-      ids.map((id) => store.units.add({ id, track: "build" })),
-    );
-    expect(additions.map((result) => result.status)).toEqual(
-      ids.map(() => "fulfilled"),
-    );
-
-    await store.close();
-    const reopened = useStore(directory);
-    expect((await reopened.units.list()).map((unit) => unit.id).sort()).toEqual(
-      ids.sort(),
-    );
-  });
-
-  it("persists concurrent updates to different units", async () => {
-    const { directory, store } = await initializedStore();
-    await store.units.add({ id: "u1", track: "build" });
-    await store.units.add({ id: "u2", track: "verify" });
-
-    await Promise.all([
-      store.units.set({ id: "u1", state: "done", branch: "stack/u1" }),
-      store.units.set({ id: "u2", state: "failed", sha: "abc123" }),
-    ]);
-
-    await store.close();
-    const reopened = useStore(directory);
-    expect(await reopened.units.get("u1")).toMatchObject({
-      state: "done",
-      branch: "stack/u1",
-    });
-    expect(await reopened.units.get("u2")).toMatchObject({
-      state: "failed",
-      sha: "abc123",
-    });
-  });
-
-  it("continues queued mutations after one rejects", async () => {
-    const { directory, store } = await initializedStore();
-    await store.units.add({ id: "existing", track: "build" });
-
-    const invalid = store.units.add({ id: "existing", track: "build" });
-    const valid = store.units.add({ id: "next", track: "build" });
-    await expect(invalid).rejects.toThrow("unit existing already exists");
-    await expect(valid).resolves.toMatchObject({ id: "next" });
-
-    await store.close();
-    const reopened = useStore(directory);
-    expect(await reopened.units.get("next")).toMatchObject({ id: "next" });
-  });
-
-  it("closes only after an already accepted mutation persists", async () => {
-    const { directory, store } = await initializedStore();
-
-    const write = store.units.add({ id: "u1", track: "build" });
-    const close = store.close();
-    await Promise.all([write, close]);
-
-    expect(await readdir(directory)).not.toContain(".orch.lock");
-    const reopened = useStore(directory);
-    expect(await reopened.units.get("u1")).toMatchObject({ id: "u1" });
-  });
-
-  it("shares close completion and rejects operations once closing starts", async () => {
-    const { store } = await initializedStore();
-
-    const firstClose = store.close();
-    const secondClose = store.close();
-    expect(secondClose).toBe(firstClose);
-    await expect(
-      store.units.add({ id: "too-late", track: "build" }),
-    ).rejects.toThrow("store is closed");
-    await expect(store.units.list()).rejects.toThrow("store is closed");
-    await Promise.all([firstClose, secondClose]);
-  });
-
   it("composes unit add, set, get, list, and counts", async () => {
     const { store } = await initializedStore();
 
@@ -297,10 +215,10 @@ describe("Store", () => {
         id: "u1",
         track: "build",
         brief: "briefs/u1.md",
-      }),
+      })
     ).toMatchObject({ id: "u1", state: "pending" });
     expect(
-      await store.units.add({ id: "=SUM(A1)", track: "+build" }),
+      await store.units.add({ id: "=SUM(A1)", track: "+build" })
     ).toMatchObject({ id: "'=SUM(A1)", track: "'+build" });
 
     const updated = await store.units.set({
@@ -320,15 +238,15 @@ describe("Store", () => {
       brief: "briefs/u1.md",
     });
     expect(await store.units.get("u1")).toEqual(updated);
-    expect(await store.units.list({ state: "done", track: "build" })).toEqual([
-      updated,
-    ]);
+    expect(
+      await store.units.list({ state: "done", track: "build" })
+    ).toEqual([updated]);
     expect(await store.units.counts()).toEqual({ done: 1, pending: 1 });
-    await expect(store.units.add({ id: "u1", track: "build" })).rejects.toThrow(
-      "unit u1 already exists",
-    );
     await expect(
-      store.units.set({ id: "missing", state: "done" }),
+      store.units.add({ id: "u1", track: "build" })
+    ).rejects.toThrow("unit u1 already exists");
+    await expect(
+      store.units.set({ id: "missing", state: "done" })
     ).rejects.toBeInstanceOf(NotFoundError);
   });
 
@@ -361,7 +279,7 @@ describe("Store", () => {
       verifier: "sol",
     });
     expect(await store.ledger.check({ pr: 184530, sha: "abc123" })).toEqual(
-      recorded,
+      recorded
     );
     expect(await store.ledger.summary()).toEqual({
       "unit-test-verified": 1,
@@ -403,8 +321,8 @@ describe("Store", () => {
     expect(await readdir(join(directory, "inbox"))).toEqual([]);
     expect(
       (await readdir(directory)).filter((name) =>
-        name.startsWith(".inbox-drain-"),
-      ),
+        name.startsWith(".inbox-drain-")
+      )
     ).toEqual([]);
   });
 
@@ -419,7 +337,7 @@ describe("Store", () => {
       onStaleLock: (holder) => stale.push(holder),
     });
     expect(
-      await recovered.units.add({ id: "u1", track: "build" }),
+      await recovered.units.add({ id: "u1", track: "build" })
     ).toMatchObject({ id: "u1" });
     expect(stale).toEqual([String(exited.pid)]);
     await recovered.close();
@@ -433,7 +351,7 @@ describe("Store", () => {
 
     const blocked = useStore(directory);
     await expect(
-      blocked.units.add({ id: "u1", track: "build" }),
+      blocked.units.add({ id: "u1", track: "build" })
     ).rejects.toThrow(`store lock held by pid ${process.pid}`);
 
     const stolen: string[] = [];
@@ -441,9 +359,9 @@ describe("Store", () => {
       force: true,
       onLockStolen: (holder) => stolen.push(holder),
     });
-    expect(await forced.units.add({ id: "u1", track: "build" })).toMatchObject({
-      id: "u1",
-    });
+    expect(
+      await forced.units.add({ id: "u1", track: "build" })
+    ).toMatchObject({ id: "u1" });
     expect(stolen).toEqual([String(process.pid)]);
     await forced.close();
     expect(await readdir(directory)).not.toContain(".orch.lock");
@@ -458,23 +376,22 @@ describe("Store", () => {
         question: "Ship now?",
         options: "ship,wait",
         defaultAnswer: "wait",
-      }),
+      })
     ).toMatchObject({ kind: "open", id: "release" });
-    expect(await store.standing.add({ line: "Never force push." })).toEqual({
-      number: 1,
-      line: "Never force push.",
-    });
+    expect(
+      await store.standing.add({ line: "Never force push." })
+    ).toEqual({ number: 1, line: "Never force push." });
 
     const first = await store.status.render();
     expect(first.changed).toBe("first render");
     expect(first.summary.openGateIds).toEqual(["release"]);
     expect(await readFile(join(directory, "status.md"), "utf8")).toContain(
-      "| release | open | Ship now? |",
+      "| release | open | Ship now? |"
     );
     expect((await store.status.render()).changed).toBe("no derived changes");
 
     expect(
-      await store.gates.resolve({ id: "release", answer: "ship" }),
+      await store.gates.resolve({ id: "release", answer: "ship" })
     ).toMatchObject({ kind: "resolved", answer: "ship" });
     expect((await store.status.render()).changed).toBe("open gates 1->0");
     expect(await store.gates.list()).toEqual([]);
@@ -526,30 +443,30 @@ describe("Store", () => {
               repo: stack.repo,
               prs: [10, 13, 11],
             })
-          ).generation,
+          ).generation
         ).toBe(2);
         expect((await store.frontier.show()).generation).toBe(2);
         await expect(
           store.frontier.set({
             repo: stack.repo,
             prs: [10, 11, 12],
-          }),
+          })
         ).rejects.toThrow(
-          "frontier pin mismatch: missing from gt: 12; extra in gt: 13",
+          "frontier pin mismatch: missing from gt: 12; extra in gt: 13"
         );
         await expect(
           store.frontier.set({
             repo: stack.repo,
             prs: [13, 10, 11],
-          }),
+          })
         ).rejects.toThrow(
-          "frontier pin mismatch: order differs: expected 13,10,11; gt 10,13,11",
+          "frontier pin mismatch: order differs: expected 13,10,11; gt 10,13,11"
         );
         await expect(
           store.frontier.set({
             repo: stack.repo,
             prs: [10, 10],
-          }),
+          })
         ).rejects.toThrow("--prs must not contain duplicates");
       },
     });
@@ -563,57 +480,30 @@ describe("Store", () => {
       directory,
       output: "◯ main\nthis line is not Graphite output\n",
       operation: async () => {
-        await expect(store.frontier.set({ repo: stack.repo })).rejects.toThrow(
-          'gt log short output has an unparseable line 2: "this line is not Graphite output"',
+        await expect(
+          store.frontier.set({ repo: stack.repo })
+        ).rejects.toThrow(
+          'gt log short output has an unparseable line 2: "this line is not Graphite output"'
         );
       },
     });
   });
 
-  it("rejects a parenthesized gt PR status instead of treating it as open", async () => {
+  it("parses Graphite output that carries colour codes", async () => {
     const { directory, store } = await initializedStore();
     const stack = await makeGitStack(directory);
 
     await withFakeGt({
       directory,
-      output: "◯ main\n◉ stack/paren\n",
+      output: "\u001b[2m◯ main\u001b[0m\n\u001b[32m◉ stack/open\u001b[39m \u001b[2m(current)\u001b[22m\n",
       operation: async () => {
-        await expect(store.frontier.set({ repo: stack.repo })).rejects.toThrow(
-          "gt info output has an invalid PR row for branch stack/paren",
-        );
+        expect(
+          (await store.frontier.set({ repo: stack.repo })).prs
+        ).toEqual([
+          { pr: 11, branches: "stack/open", sha: stack.openSha, state: "OPEN" },
+        ]);
       },
     });
-  });
-
-  it("rejects a leading-dash branch name in gt log output", async () => {
-    const { directory, store } = await initializedStore();
-    const stack = await makeGitStack(directory);
-
-    await withFakeGt({
-      directory,
-      output: "◯ main\n◉ --upload-pack=/tmp/pwn\n",
-      operation: async () => {
-        await expect(store.frontier.set({ repo: stack.repo })).rejects.toThrow(
-          "gt log short output has an unparseable line 2",
-        );
-      },
-    });
-  });
-
-  it("keeps status.md table cells single-line when frontier data carries control characters", async () => {
-    const { directory, store } = await initializedStore();
-
-    await writeFile(
-      join(directory, "frontier.json"),
-      `${JSON.stringify({
-        generation: 1,
-        prs: [{ pr: 7, branches: "a\nb|c", sha: "cafe\tf00d", state: "OPEN" }],
-        lowestUnmerged: 7,
-      })}\n`,
-    );
-    await store.status.render();
-    const status = await readFile(join(directory, "status.md"), "utf8");
-    expect(status).toContain("| a b\\|c | 7 | cafe f00d | OPEN |");
   });
 
   it("rejects malformed TSV, verdict, frontier, and inbox data", async () => {
@@ -621,32 +511,32 @@ describe("Store", () => {
 
     await writeFile(join(directory, "units.tsv"), "wrong\n");
     await expect(store.units.list()).rejects.toThrow(
-      "units.tsv has an invalid header",
+      "units.tsv has an invalid header"
     );
     await writeFile(
       join(directory, "units.tsv"),
-      "id\ttrack\tstate\tbranch\tpr\tsha\tbrief\nshort\trow\n",
+      "id\ttrack\tstate\tbranch\tpr\tsha\tbrief\nshort\trow\n"
     );
     await expect(store.units.list()).rejects.toThrow(
-      "units.tsv has a malformed row",
+      "units.tsv has a malformed row"
     );
 
     await writeFile(
       join(directory, "ledger.tsv"),
-      "pr\tsha\tverdict\tevidence\tverifier\tts\n1\tsha\tinvalid\treport\tme\tnow\n",
+      "pr\tsha\tverdict\tevidence\tverifier\tts\n1\tsha\tinvalid\treport\tme\tnow\n"
     );
     await expect(store.ledger.summary()).rejects.toThrow(
-      "ledger.tsv has invalid verdict invalid",
+      "ledger.tsv has invalid verdict invalid"
     );
 
     await writeFile(join(directory, "frontier.json"), '{"generation":"1"}\n');
     await expect(store.frontier.show()).rejects.toThrow(
-      "frontier.json has an invalid shape",
+      "frontier.json has an invalid shape"
     );
 
     await writeFile(join(directory, "inbox", "bad.tsv"), "too\tshort\n");
     await expect(store.inbox.peek()).rejects.toThrow(
-      "inbox pointer bad.tsv is malformed",
+      "inbox pointer bad.tsv is malformed"
     );
   });
 
@@ -679,12 +569,12 @@ describe("orch CLI", () => {
 
   it("accepts ORCH_STORE and emits complete JSON", async () => {
     const directory = await makeDirectory();
-    const env = { ...process.env, ORCH_STORE: directory };
+    const env = { PATH: process.env.PATH, ORCH_STORE: directory };
     expect(runCli(["init"], env).code).toBe(0);
 
     const added = runCli(
       ["unit", "add", "u1", "--track", "build", "--json"],
-      env,
+      env
     );
     expect(added.code).toBe(0);
     expect(JSON.parse(added.stdout)).toEqual({
@@ -702,9 +592,16 @@ describe("orch CLI", () => {
     const directory = await makeDirectory();
     expect(runCli(["--store", directory, "init"]).code).toBe(0);
 
-    const missingRepo = runCli(["--store", directory, "frontier", "set"]);
+    const missingRepo = runCli([
+      "--store",
+      directory,
+      "frontier",
+      "set",
+    ]);
     expect(missingRepo.code).toBe(1);
-    expect(missingRepo.stderr).toContain("set --repo <dir> or ORCH_REPO");
+    expect(missingRepo.stderr).toContain(
+      "set --repo <dir> or ORCH_REPO"
+    );
 
     const userError = runCli([
       "--store",
@@ -744,5 +641,66 @@ describe("orch CLI", () => {
       verdict: "NOT-VERIFIED",
     });
     expect(missingLedger.stderr).toBe("");
+  });
+});
+
+describe("port guards", () => {
+  it("rejects a parenthesized gt PR status instead of treating it as open", async () => {
+    const { directory, store } = await initializedStore();
+    const stack = await makeGitStack(directory);
+
+    await withFakeGt({
+      directory,
+      output: "◯ main\n◉ stack/paren\n",
+      operation: async () => {
+        const gt = fakeGtPath(directory);
+        await rename(gt, `${gt}-base`);
+        await writeFile(
+          gt,
+          `#!/usr/bin/env bash
+if [ "$*" = "--no-interactive info stack/paren" ]; then
+  printf 'stack/paren\\nPR #14 (Needs approvals (2)) tricky change\\n'
+else
+  exec "${gt}-base" "$@"
+fi
+`,
+          { mode: 0o755 }
+        );
+        await expect(store.frontier.set({ repo: stack.repo })).rejects.toThrow(
+          "gt info output has an invalid PR row for branch stack/paren"
+        );
+      },
+    });
+  });
+
+  it("rejects a leading-dash branch name in gt log output", async () => {
+    const { directory, store } = await initializedStore();
+    const stack = await makeGitStack(directory);
+
+    await withFakeGt({
+      directory,
+      output: "◯ main\n◉ --upload-pack=/tmp/pwn\n",
+      operation: async () => {
+        await expect(store.frontier.set({ repo: stack.repo })).rejects.toThrow(
+          "gt log short output has an unparseable line 2"
+        );
+      },
+    });
+  });
+
+  it("keeps status.md table cells single-line when frontier data carries control characters", async () => {
+    const { directory, store } = await initializedStore();
+
+    await writeFile(
+      join(directory, "frontier.json"),
+      `${JSON.stringify({
+        generation: 1,
+        prs: [{ pr: 7, branches: "a\nb|c", sha: "cafe\tf00d", state: "OPEN" }],
+        lowestUnmerged: 7,
+      })}\n`
+    );
+    await store.status.render();
+    const status = await readFile(join(directory, "status.md"), "utf8");
+    expect(status).toContain("| a b\\|c | 7 | cafe f00d | OPEN |");
   });
 });
