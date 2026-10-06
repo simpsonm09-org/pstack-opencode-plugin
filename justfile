@@ -26,7 +26,7 @@ aislop:
 # Check the vendored skills against the pinned upstream clone.
 # Needs the clone that scripts/build.ps1 expects; see README.md.
 pin:
-    python3 scripts/verify-pin.py
+    mise exec -- python scripts/verify-pin.py
 
 # Lint and run the AI-slop gate.
 verify: lint aislop
