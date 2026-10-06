@@ -1,3 +1,4 @@
+# platforms: windows
 [CmdletBinding()]
 param(
     [string] $Clone = (Join-Path $env:LOCALAPPDATA 'maxstack\pstack-claude')
