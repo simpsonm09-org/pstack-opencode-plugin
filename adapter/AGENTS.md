@@ -14,4 +14,4 @@ When a PStack skill names Claude tools, apply the OpenCode mapping:
 
 Read the `pstack-opencode` skill for the full mapping. Do not use the upstream `setup-pstack` model sheet on OpenCode. OpenCode V2 does not load files listed in the `instructions` array. Use `setup-pstack-opencode` for the supported agent-profile approach.
 
-Claude Code's `run`, `loop`, SessionStart hooks, and `~/.claude/projects` transcript paths are not OpenCode features. Do not claim those workflows work unchanged. Use a project verification skill or OpenCode tools for app checks. OpenChamber Multi-run and worktree sessions are optional UI workflows, not automatic equivalents to PStack's subagent panels.
+Claude Code's `run`, `loop`, SessionStart hooks, and `~/.claude/projects` transcript paths are not OpenCode features. Do not claim those workflows work unchanged. Use a project verification skill or OpenCode tools for app checks. Separate sessions and worktrees that you start yourself are optional workflows, not automatic equivalents to PStack's subagent panels.

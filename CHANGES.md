@@ -4,6 +4,14 @@ This repository adapts the pinned `michael-denyer/pstack-claude` tree to OpenCod
 
 This tree is pinned to `michael-denyer/pstack-claude` `8d3aa571` (version 0.9.73), absorbing `cursor/plugins` `2cbf585` (PStack v0.15.13).
 
+## 2026-10-08
+
+- Removed the OpenChamber references from the adapter skills, the adapter `AGENTS.md`, the guide, and the substitutions table, because OpenChamber is uninstalled. Changed plugins, agents, and skills are picked up when a new session starts, so the restart guidance is replaced with that.
+- The session-history substitution now names `opencode session export`, in place of the `openchamber` tool's `session.messages` action. The `last` and `limit` restriction no longer applies.
+- The `loop` substitution no longer names a scheduled task.
+- The adapter skill `pstack-opencode` drops its OpenChamber-specific options section.
+- No vendored skill body changed. `skills/` is regenerated from the adapter sources.
+
 ## Fidelity rule
 
 Every vendored file under `skills/` is byte-identical to its source after LF normalization. `scripts/verify-pin.py` fails on any byte difference, a missing file, or an extra file. The port edits no upstream skill body. All adaptations live in port-authored files.
@@ -34,8 +42,8 @@ The port replaces Claude Code primitives with OpenCode equivalents. The mapping 
 | `subagent_type: "pstack:poteto-agent"` and the namespaced effort agents `pstack:poteto-agent-<level>` and `pstack:effort-<level>` | The installed `pstack-agent` ID. There is no per-call effort agent. Put a supported variant on the profile's `model` line instead. |
 | `run_in_background: true` | The `background: true` field on the `subagent` tool. A background subagent returns at once and notifies when done. |
 | Claude Code `run` | No OpenCode built-in. Use a project verification skill and OpenCode's shell or browser tools. |
-| Claude Code `loop` | No OpenCode built-in. Re-check manually, or use an explicit OpenChamber scheduled task when the task fits. |
-| Claude Code transcript paths such as `~/.claude/projects/` | The `openchamber` tool's `session.messages` action, or mark the workflow unsupported. The `last` and `limit` fields cannot be combined. |
+| Claude Code `loop` | No OpenCode built-in. Re-check manually. |
+| Claude Code transcript paths such as `~/.claude/projects/` | `opencode session export <session>`, which returns the session's messages as JSON, or mark the workflow unsupported. |
 | `plugin-dev:skill-development` | No bundled OpenCode equivalent. Author the SKILL.md per the Agent Skills spec, with `name` and `description` frontmatter and progressive disclosure. |
 | `.claude/skills/verify/` | `.opencode/skills/`, OpenCode's project skill directory, with `.claude/skills/` and `.agents/skills/` also resolving. |
 | `~/.claude/orchestrate/<slug>/` | A persistent directory outside the repo that is not `~/.claude`. |

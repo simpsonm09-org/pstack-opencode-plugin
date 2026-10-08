@@ -11,7 +11,7 @@ Read before you write. Editing code you do not understand is how subtle regressi
 - [`how`](../../skills/how/SKILL.md) traces runtime mechanics. It answers at the level of a senior engineer onboarding you, with the runtime flow, the key types, and the non-obvious parts. For a wide subsystem it fans out read-only explorers first.
 - [`why`](../../skills/why/SKILL.md) digs up history. It starts from source control, then queries every evidence category your MCPs expose in parallel: issue tracker, long-form docs, team chat, observability, error tracking, and analytics. The report cites its sources and separates evidence from inference.
 - [`teach`](../../skills/teach/SKILL.md) blends both into one plain explanation when a summary is not enough. It runs `how` and `why` and weaves the findings together. "Convince me" is the framing worth stealing.
-- [`recall`](../../skills/recall/SKILL.md) rebuilds your own recent context on a topic. On OpenCode it reads session history through the `openchamber` tool's `session.messages` action, not a Claude transcript path.
+- [`recall`](../../skills/recall/SKILL.md) rebuilds your own recent context on a topic. On OpenCode it reads session history with `opencode session export`, not a Claude transcript path.
 
 Ask the question you actually have. `why` then `how` is a good order when you suspect the history explains the mess.
 
@@ -64,7 +64,7 @@ Clean before you commit. [`deslop`](../../skills/deslop/SKILL.md) removes code s
 
 An agent you trust to verify its own work is an agent you can leave alone with a hard task. What makes that safe is a checkable finish condition, an isolated worktree, and a decision log you audit in the morning.
 
-The [Autonomous run playbook](../../skills/poteto-mode/playbooks/autonomous-run.md) holds the loop: check the finish condition, make the smallest justified change, verify against the real artifact, commit on progress, and log one decision row. On OpenCode there is no built-in loop skill. Re-check manually, or use an OpenChamber scheduled task when the task fits.
+The [Autonomous run playbook](../../skills/poteto-mode/playbooks/autonomous-run.md) holds the loop: check the finish condition, make the smallest justified change, verify against the real artifact, commit on progress, and log one decision row. On OpenCode there is no built-in loop skill. Re-check manually.
 
 - [`figure-it-out`](../../skills/figure-it-out/SKILL.md) designs the run's phases before any code and wires in the decision log. A duration is not a finish condition, so give the run a predicate that can pass or fail.
 - [`show-me-your-work`](../../skills/show-me-your-work/SKILL.md) is what makes the run reviewable. Each row records the time, phase, decision, reason, an evidence pointer, and the result. It stays local by default and commits when a reviewer needs the trail.

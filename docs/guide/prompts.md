@@ -122,7 +122,7 @@ bro
 
 - **Enumerating skills in the prompt.** A prompt such as "use how, then architect, then arena" reorders steps the playbook already sequences. State the goal and the constraints. Name a skill only to override a default.
 - **A vague finish condition.** "Make it better" gives an autonomous run nothing to check. Give a command or artifact that can pass or fail.
-- **Parallel agents in one worktree.** They overwrite each other and the diff becomes archaeology. Say "one worktree per attempt" and the isolation is there. On OpenChamber, Multi-run can start separate sessions with the same prompt and isolate each in a worktree, but it does not run pstack's cross-judge or synthesis steps for you.
+- **Parallel agents in one worktree.** They overwrite each other and the diff becomes archaeology. Say "one worktree per attempt" and the isolation is there. Separate sessions with the same prompt can each get a worktree, but they do not run pstack's cross-judge or synthesis steps for you.
 - **Using `arena` for coverage.** `arena` repeats one design or code brief, then picks a base and grafts the best parts. `swarm` splits slices or declared race arms and aggregates one report. Coverage is `swarm`.
 - **Accepting every review comment.** Bots and humans file real catches and noise in one list. `interrogate` sorts findings into act-on and dismissed buckets with reasons, and you can override either way.
 - **Treating `auto` as a model slug.** Do not pass `auto`, `inherit-parent`, or the Claude aliases `opus`, `fable`, and `sonnet` to OpenCode. A role value of `auto` or `inherit-parent` means the subagent inherits the parent session model. Otherwise use a real `provider/model` from `/models`. The `pstack-opencode` skill names those aliases, and `setup-pstack-opencode` covers model setup.
@@ -131,9 +131,9 @@ bro
 
 ## OpenCode pitfalls
 
-- Do not read Claude Code transcript paths such as `~/.claude/projects/`. OpenCode does not write them. To mine a session, use the `openchamber` tool's `session.messages` action with either `limit` or `last` and `lastAssistant`, never both. A history scan such as `recall` uses this API and cannot reach older turns.
+- Do not read Claude Code transcript paths such as `~/.claude/projects/`. OpenCode does not write them. To mine a session, run `opencode session export <session>`, which prints its messages as JSON. A history scan such as `recall` uses this route.
 - The `instructions` array in `opencode.json(c)` is accepted but not loaded. Listing a path there changes nothing. Put standing instructions in `AGENTS.md`, which OpenCode reads.
 - Write a project verification skill to `.opencode/skills/verify/`, OpenCode's project skill directory. `.claude/skills/` and `.agents/skills/` also resolve, but `.opencode/skills/` is the path to use. `create-verification-skill` generates it.
-- OpenCode has no bundled `run` or `loop` skills. Run app checks through a project verification skill and the shell or browser tools. For repeated checks, re-check by hand or use an explicit OpenChamber scheduled task.
+- OpenCode has no bundled `run` or `loop` skills. Run app checks through a project verification skill and the shell or browser tools. For repeated checks, re-check by hand.
 
 Back to the [guide index](./README.md).

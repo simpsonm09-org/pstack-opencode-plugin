@@ -1,6 +1,6 @@
 ---
 name: pstack-opencode
-description: Translate PStack's Claude-specific tools, agents, model references, and runtime assumptions to OpenCode V2 and OpenChamber
+description: Translate PStack's Claude-specific tools, agents, model references, and runtime assumptions to OpenCode V2
 ---
 
 # PStack on OpenCode
@@ -20,7 +20,7 @@ The global `AGENTS.md` routing instruction is best-effort. For guaranteed activa
 | `model` on an agent call | No per-call model field. A configured agent may name a `provider/model` and `#variant`; otherwise it inherits the parent session model. |
 | `TaskCreate`, `TaskUpdate`, or `TodoWrite` | Use an uncommitted `todo.md` checklist when no task-tracking tool is available. |
 | Claude Code `run` | No equivalent built-in skill. Use a project verification skill and OpenCode's available shell or browser tools. |
-| Claude Code `loop` | No equivalent built-in skill. Re-check manually or use an explicit OpenChamber scheduled task when the task fits. |
+| Claude Code `loop` | No equivalent built-in skill. Re-check manually. |
 | `subagent_type: "pstack:poteto-agent"` and the namespaced effort agents `pstack:poteto-agent-<level>` and `pstack:effort-<level>` | OpenCode has no namespaced or effort agent types. Use the installed `pstack-agent` ID for any PStack worker. There is no per-call effort agent, so a variant belongs in the agent profile's `model` line. |
 | `run_in_background: true` | Use the `subagent` tool's `background: true` field. A background subagent returns at once and notifies when done. |
 | `plugin-dev:skill-development` | No bundled OpenCode equivalent. Author the SKILL.md per the Agent Skills spec, keeping `name` and `description` frontmatter and progressive disclosure. |
@@ -61,23 +61,17 @@ The `poteto-help` skill answers setup, `/poteto-mode`, and skill-choice question
 - The body's external links are not OpenCode documentation. That covers the pstack-claude README, the pstack-claude `docs/reference.md` pages, and the pstack-claude public-copy base. Read the OpenCode guide the plugin ships under `docs/guide/` instead.
 - The note that the `principle-*` leaves are hidden from the slash menu does not hold. OpenCode registers every skill through the transform, so every ID is loadable with the `skill` tool.
 
-## OpenChamber-specific options
-
-OpenChamber runs on an OpenCode server. Its personal skills and project skills use the app's Settings UI; OpenCode's global and project skill paths also work when the managed server can see them.
-
-OpenChamber Multi-run can start separate sessions with the same prompt and optionally isolate them in worktrees. Use it as a user-selected way to compare runs. It does not run PStack's cross-judge or synthesis steps automatically. The Agent Control Tool can create and follow sessions on a managed local server, but it is not available to the OpenCode CLI and is not a required PStack tool.
-
 ## Runtime-only paths
 
-Do not read Claude Code transcript paths such as `~/.claude/projects/` from OpenCode. Use OpenCode's documented session API or mark a transcript-dependent PStack workflow unsupported. Do not inspect OpenCode or OpenChamber databases directly. Keep app credentials and session state in their local stores.
+Do not read Claude Code transcript paths such as `~/.claude/projects/` from OpenCode. Use `opencode session export`, described below, or mark a transcript-dependent PStack workflow unsupported. Do not inspect OpenCode databases directly. Keep app credentials and session state in their local stores.
 
 ## Reading sessions
 
-Mine an OpenCode session through the `openchamber` tool's `session.messages` action, not a Claude or Codex transcript path. Pass either `limit` or `last`/`lastAssistant` and never both, because the call rejects the combination with `last cannot be combined with limit` and returns only the most recent messages with no offset; a skill that scans history, such as `reflect`, must use this API and accept that older turns are unreachable.
+Mine an OpenCode session with `opencode session export <session>`, not a Claude or Codex transcript path. It prints one JSON object with `info` and `messages`, and `messages` holds the session's messages with no limit flag. Find the session ID with `opencode session list --format json`, which lists the top-level sessions in the current project, newest first. Add `--sanitize` to redact transcript and file data. A history scan such as `reflect` reads this export in place of a transcript path.
 
-## Restarting the server
+## Picking up changes
 
-Restarting the managed OpenCode server to pick up a plugin, agent, or MCP change caches plugin resolution and interrupts in-flight tool calls. MCP sign-in state and the tool catalog can lag until after the restart, so re-run any interrupted probe and re-check tool availability once the server is back.
+Nothing needs restarting. A changed plugin, agent profile, or skill is picked up when the next session starts, so start a new session and re-check tool availability there. From a repository directory, `opencode debug agents` lists the agents, `opencode debug config` lists the configuration sources, and `opencode api --header "x-opencode-directory:<dir>" skill.list` and `plugin.list` list the skills and plugins, where `<dir>` is that repository directory.
 
 ## Worktrees without a base
 
