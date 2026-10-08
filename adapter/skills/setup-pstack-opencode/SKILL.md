@@ -23,16 +23,12 @@ The upstream `/setup-pstack` prose about reasoning effort is Claude-specific. It
 - `pstack-reviewer` is read-only and inherits the current session model.
 - `pstack-comment-sicko` is the read-only comment reviewer and inherits the current session model.
 
-The profile sources are the plugin layer's `agents/` directory in the `pstack-opencode-plugin` repository. The workspace installer copies them into the workspace's `.opencode/agents` directory and injects each `model:` line from the workspace model policy. `maxstack/opencode/` is a frozen snapshot of the legacy global content, kept only as the global-removal match target, so it is not the source. Do not edit an installed copy. Edit the source profile in the plugin repository, then rerun the workspace installer.
+The profile sources are the plugin layer's `agents/` directory in the `pstack-opencode-plugin` repository. The workspace installer copies them into the workspace's `.opencode/agents` directory and strips any `model:` line from their frontmatter, so each profile runs on the session's model. Do not edit an installed copy. Edit the source profile in the plugin repository, then rerun the workspace installer.
 
 ## Add a model override
 
-The model lines are owned by the workspace model policy, not by the source profiles. The installer strips any existing `model:` line and re-injects the value from `maxstack/models.json`, so a hand-edited `model:` line has no effect.
+The workspace sets no model. The three pstack profiles carry no `model:` line, and the workspace installer strips one if it finds it, so a hand-edited `model:` line in an installed profile does not survive the next install. The user picks the model in the harness, and each pstack subagent runs on the session's model.
 
-1. Set the role in `maxstack/models.json`. The `roles` map names the model per profile, `worker` for `pstack-agent`, `reviewer` for `pstack-reviewer`, and `comment-sicko` for `pstack-comment-sicko`. Use `/models` in the target project to confirm the exact `provider/model` ID and any supported variant.
-2. Rerun the workspace installer, `Install-Workspace.ps1 -Apply`, to inject the value into the installed profiles.
-3. Run a fresh PStack subagent session and inspect its reported model before relying on the override.
-
-A genuine OpenCode agent profile outside the installer's managed set, whether project `.opencode/agents/` or a global `~/.config/opencode/agents/` entry that the installer does not overwrite, can still set its own `model:`. That path is separate from the three pstack profiles above.
+To run a pstack role on a different model, use an OpenCode agent profile outside the installer's managed set, whether project `.opencode/agents/` or a global `~/.config/opencode/agents/` entry that the installer does not overwrite. Such a profile can set its own `model:`. Use `/models` in the target project to confirm the exact `provider/model` ID and any supported variant, then run a fresh subagent session and inspect its reported model before relying on it.
 
 This setup does not generate per-role profiles or promise multi-model diversity. Separate sessions can compare models, but the parent must still perform PStack's judging and synthesis steps.
