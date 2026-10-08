@@ -12,7 +12,7 @@ On OpenCode that skill goes to `.opencode/skills/verify/`. That is OpenCode's pr
 
 The generated skill teaches an agent to launch the app, run a read-only doctor check before driving it, drive one mapped feature, capture evidence, and clean up. It writes for the next agent, which reads it cold mid-task and has never seen the app.
 
-Maintain it with the `maintain-verification-skill` skill. A feature map rots the moment the app changes, so the upkeep loop re-reads source per feature, drives every feature live, and ships at most one PR of proven corrections. Run it on a cadence. A recurring OpenChamber scheduled task fits here. The upstream article suggests once a day, and that is a reasonable starting point.
+Maintain it with the `maintain-verification-skill` skill. A feature map rots the moment the app changes, so the upkeep loop re-reads source per feature, drives every feature live, and ships at most one PR of proven corrections. Run it on a cadence. The upstream article suggests once a day, and that is a reasonable starting point.
 
 ## Make it reproducible
 
@@ -59,7 +59,7 @@ The article recommends Cursor cloud agents, which run on Cursor's infrastructure
 
 - Run work as `subagent` calls with `background: true`. A background subagent returns at once and notifies when it finishes, so you can keep other work moving.
 - Give each writer its own git worktree or branch. Two agents writing the same checkout clobber each other.
-- Use an OpenChamber scheduled task for a recurring run, for example the daily `maintain-verification-skill` pass. A repository with no commit has no worktree base, so fall back to owning the change directly.
+- Run `maintain-verification-skill` on a recurring basis, for example the daily pass the upstream article suggests. A repository with no commit has no worktree base, so fall back to owning the change directly.
 
 ## How to use it with prompts
 

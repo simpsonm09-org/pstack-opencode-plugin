@@ -35,4 +35,4 @@ The model lines are owned by the workspace model policy, not by the source profi
 
 A genuine OpenCode agent profile outside the installer's managed set, whether project `.opencode/agents/` or a global `~/.config/opencode/agents/` entry that the installer does not overwrite, can still set its own `model:`. That path is separate from the three pstack profiles above.
 
-This setup does not generate per-role profiles or promise multi-model diversity. OpenChamber Multi-run can compare models in separate sessions, but the parent must still perform PStack's judging and synthesis steps.
+This setup does not generate per-role profiles or promise multi-model diversity. Separate sessions can compare models, but the parent must still perform PStack's judging and synthesis steps.
