@@ -10,7 +10,7 @@ When it loads it does two things:
 ## What it does not do
 
 - It cannot create agent profiles. OpenCode's `AgentEditor` has no `add`. The profiles ship in `agents/` and are installed into `.opencode/agents` by the workspace installer.
-- It cannot set the workspace model. That stays in the workspace `opencode.jsonc`, and the per-role models come from `maxstack/models.json`.
+- It cannot set the workspace model. The workspace sets none; the user picks the model in the harness.
 - Transform-registered skills get a base directory but no `<skill_files>` sample. PStack skills name their own supporting files, so the agent still finds them.
 
 ## Guide
@@ -28,7 +28,7 @@ Vendored skills under `skills/` are byte-identical to their source after LF norm
 ## Layout
 
 - `index.ts`, `package.json` are the plugin entrypoint and manifest.
-- `agents/` holds the hand-authored OpenCode agent profiles: `pstack-agent`, `pstack-reviewer`, `pstack-comment-sicko`. Model lines are injected by the workspace installer from `maxstack/models.json`; keep no `model:` line here.
+- `agents/` holds the hand-authored OpenCode agent profiles: `pstack-agent`, `pstack-reviewer`, `pstack-comment-sicko`. They carry no `model:` line, and the workspace installer strips one, so each profile runs on the session's model.
 - `adapter/skills/` holds the hand-authored adapter skills `pstack-opencode`, `setup-pstack-opencode`, and `port-pstack`.
 - `vendor/skills/` is the carry slot for upstream content ahead of the pin, mirrored into `skills/` by the build. It is currently empty, and the mechanism remains for a future carry. It is upstream-sourced, not port-authored.
 - `adapter/AGENTS.md` is the historical global routing instruction, kept for reference.
